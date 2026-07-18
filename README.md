@@ -36,6 +36,28 @@ graph TD
 
 ---
 
+## 👤 Use Case Diagram
+
+```mermaid
+graph LR
+    User((Visually Impaired<br>User))
+    
+    subgraph CareLens System
+        UC1([Capture Real-Time Video])
+        UC2([Detect Furniture & People])
+        UC3([Filter Repetitive Audio Spam])
+        UC4([Provide Private Voice Cues])
+    end
+    
+    User -->|Wears Glasses| UC1
+    UC1 -.->|Feeds YOLOv8| UC2
+    UC2 -.->|Triggers| UC3
+    UC3 -.->|Sends to IEMs| UC4
+    UC4 -->|Listens to Warnings| User
+```
+
+---
+
 ## 🛠️ Hardware Requirements
 *   **NVIDIA Jetson Orin Nano Developer Kit** (8GB)
 *   **Intel RealSense Depth Camera**
