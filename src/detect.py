@@ -4,7 +4,12 @@ import cv2
 import pyttsx3
 import threading
 import time
+import argparse
 from ultralytics import YOLO
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--no-gui', action='store_true', help='Disable OpenCV window to save RAM')
+args = parser.parse_args()
 
 # --- AUDIO SETUP ---
 engine = pyttsx3.init()
@@ -64,11 +69,11 @@ try:
         # Save frame to the MP4 file
         out.write(annotated_frame)
         
-        # Show on screen
-        cv2.imshow("CareLens - Live Detection", annotated_frame)
-        
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        # Show on screen if GUI is enabled
+        if not args.no_gui:
+            cv2.imshow("CareLens - Live Detection", annotated_frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 finally:
     pipeline.stop()
     out.release()
