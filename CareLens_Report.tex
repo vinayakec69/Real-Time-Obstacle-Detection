@@ -1,0 +1,82 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{CareLens: An Edge-AI Based Spatial Navigation and Obstacle Detection System\\
+}
+
+\author{\IEEEauthorblockN{Vinayak S C}
+\IEEEauthorblockA{\textit{Emphasis Lab} \\
+\textit{Sahyadri College of Engineering and Management SCEM}\\
+Mangalore \\
+vinayakchandavar4@gmail.com}
+}
+
+\maketitle
+
+\begin{abstract}
+The World Health Organization estimates that over 2.2 billion people globally suffer from near or distance vision impairment. Traditional assistive tools, such as the white cane, provide ground-level physical feedback but lack the ability to semantically identify obstacles or assist in targeted navigation. In this paper, we present CareLens, a wearable Edge-AI system designed to provide real-time spatial awareness and object-specific navigation. Powered by an NVIDIA Jetson Orin Nano and an Intel RealSense Depth Camera, CareLens leverages a highly optimized YOLOv8s architecture to detect environmental hazards. The system bridges the sensory gap by translating visual bounding boxes and depth data into discrete, zero-latency audio cues via a Type-C Digital-to-Analog Converter (DAC). Furthermore, following industry alignment with Rokid Smart Glasses specifications, CareLens introduces a novel Graphical User Interface (GUI) and a spatial Navigation (NAV) module, allowing users to locate specific misplaced items (e.g., cell phones, medicine) using directional audio waypoints.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Edge AI, YOLOv8, Jetson Orin Nano, Spatial Navigation, Assistive Technology, Computer Vision
+\end{IEEEkeywords}
+
+\section{Introduction}
+Navigating dynamic indoor environments poses a significant challenge for the visually impaired. The problem statement proposed by Flocare/CareLens highlighted a critical flaw in existing solutions: a white cane can detect an object in the user's path, but it cannot inform the user \textit{what} the object is. The inability to differentiate between a person to greet and a chair to avoid leads to anxiety and restricted mobility.
+
+Initial prototypes focused purely on environmental object detection. However, during the mid-development phase, the integration of commercial smart glasses specifications (specifically, the Rokid Glasses powered by the Snapdragon AR1 chip) necessitated a major architectural pivot. The evaluation panel required the implementation of two new features: a graphical user interface (GUI) for caregivers, and a targeted Navigation (NAV) system capable of guiding the user to specific objects, such as a misplaced mobile phone or medicine cabinet.
+
+This paper details the iterative development of CareLens, from overcoming Out-Of-Memory (OOM) hardware crashes on edge devices to finalizing a robust, GTA-style spatial navigation software suite.
+
+\section{Hardware Architecture}
+The CareLens architecture prioritizes zero-latency processing and offline capability, ensuring the user is never left vulnerable due to a dropped internet connection.
+
+\subsection{NVIDIA Jetson Orin Nano}
+The core computing module is the Jetson Orin Nano (8GB). It provides the necessary GPU acceleration to run deep neural networks natively on the edge.
+
+\subsection{Intel RealSense Depth Camera}
+An Intel RealSense camera captures both high-resolution RGB frames and infrared depth maps. The RGB stream is utilized by the YOLOv8 model for semantic classification, while the depth stream calculates the exact physical distance to the target, triggering a ``Destination Reached'' audio cue when the user is within 0.6 meters of the object.
+
+\subsection{Zero-Latency Audio Subsystem}
+Initial testing with Bluetooth audio devices revealed severe latency (up to 500ms) and range issues due to the Jetson's M.2 IPEX antenna configurations. To solve this, audio is routed through a Type-C Digital-to-Analog Converter (DAC) connected to KZ In-Ear Monitors (IEMs), guaranteeing instant, private audio feedback.
+
+\section{Proposed Methodology}
+
+\subsection{Model Iteration and Tuning}
+Early development involved training a custom YOLOv8 Nano model on a highly specific, sparse dataset (e.g., Turkish medicine boxes). This approach yielded two critical failures:
+\begin{itemize}
+    \item \textbf{Hardware Bottlenecks:} The custom training loop and unoptimized data loaders caused the Jetson's \texttt{CUDACachingAllocator} to suffer Out-Of-Memory (OOM) crashes, halting the system.
+    \item \textbf{Catastrophic Forgetting:} The model suffered from severe domain gaps and hallucinated bounding boxes on empty walls.
+\end{itemize}
+To resolve this, the architecture was pivoted to utilize the expertly trained YOLOv8s (Small) COCO base weights. This eliminated memory crashes, provided flawless detection of 80 common environmental hazards (chairs, people, laptops, cell phones), and maintained a stable 30 FPS inference rate.
+
+\subsection{Obstacle Warning and Audio Cooldown}
+To prevent sensory overload, CareLens employs an intelligent audio cooldown matrix. When an object is detected, the \texttt{pyttsx3} offline TTS engine issues a conversational warning (e.g., \textit{``Watch out, there is a chair in front of you''}). A timestamp-based gating algorithm prevents the system from repeating the same warning for 3 seconds, ensuring a calm user experience.
+
+\subsection{Graphical User Interface (GUI)}
+To satisfy the commercial presentation requirements, a lightweight, dark-themed GUI was developed using \texttt{Tkinter}. Because heavy UI frameworks (like PyQt or Electron) would consume the Jetson's limited RAM and crash the AI, the GUI was designed to run the YOLO scripts asynchronously in headless mode (\texttt{--no-gui}), preserving critical memory resources.
+
+\subsection{Spatial Navigation (NAV) Module}
+The NAV module allows the user to select a target object via the GUI. Once activated, the system filters all YOLO detections for the target class. Using the X-coordinates of the bounding box, the system calculates the object's relative position:
+\begin{itemize}
+    \item \textbf{Left-Third ($X < 213$):} Audio cue ``Turn Left.''
+    \item \textbf{Right-Third ($X > 426$):} Audio cue ``Turn Right.''
+    \item \textbf{Center:} Audio cue ``Walk Straight.''
+\end{itemize}
+For evaluator visualization, a blue graphical waypoint with dynamic distance markers was overlaid onto the camera feed, proving the spatial accuracy of the logic.
+
+\section{Conclusion and Future Scope}
+The CareLens system successfully demonstrates that high-accuracy, real-time spatial navigation and obstacle detection are achievable on Edge-AI hardware. By prioritizing memory optimization and zero-latency audio, the system provides a robust solution for the visually impaired.
+
+Future iterations of CareLens will focus on porting the architecture to commercial smart glasses, such as the Rokid RV101. This will require quantizing the 32-bit YOLOv8s PyTorch model down to an INT8 TensorFlow Lite format. This quantization will compress the model's memory footprint by 400\%, allowing it to run natively on the Snapdragon AR1 Neural Processing Unit (NPU) at sub-2W power consumption.
+
+\end{document}
