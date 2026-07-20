@@ -20,6 +20,7 @@ def speak_navigation(text):
     global is_speaking
     if not is_speaking:
         is_speaking = True
+        print(f"\n[AUDIO SIMULATION] AI whispers: '{text}'")
         engine.say(text)
         engine.runAndWait()
         is_speaking = False
